@@ -25,7 +25,7 @@ def AddLog(text, printInConsole=True):
 
 # === App local path (manual edit) ===
 def app_path(driver):
-  html_file = os.getcwd() + "/" + "..//..//ContactManager.html" #open local relative file App
+  html_file = os.getcwd() + "/" + "..//..//index.html" #open local relative file App
   driver.get("file:///" + html_file)
   return driver
 

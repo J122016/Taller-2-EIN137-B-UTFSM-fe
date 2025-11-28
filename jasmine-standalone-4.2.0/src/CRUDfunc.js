@@ -7,6 +7,9 @@
 - [view] separe style in html, make a custom css file
 */
 
+/* =============================== ENV VARIABLES =============================== */
+const backendUrl = window.appConfig.backendApiUrl || 'http://localhost:8000';
+
 /* =============================== CRUD storage functions =============================== */
 // Tested with jasmine 'LocalStorage CRUD utils'
 
@@ -113,12 +116,16 @@ function CRUDaddContactRow(contact, table){
     emailCell.innerHTML = contact.email;
     phoneCell.innerHTML = contact.phone;
     actionsCell.innerHTML = `
+        <button type='button' class='btn btn-outline-primary btn-sm mx-1' onclick='exportContact(this.parentNode.parentNode.id)'>
+            <i class="bi bi-person-vcard"></i> v-card
+        </button>
         <button type='button' class='btn btn-outline-success btn-sm mx-1' onclick='triggerEdit(this.parentNode.parentNode.id)'>
             <i class='bi bi-pencil'></i> Edit 
         </button>
         <button type='button' class='btn btn-outline-danger btn-sm mx-1' onclick='triggerDelete(this.parentNode.parentNode.id)'>
             <i class='bi bi-trash'></i> Delete
-        </button>`;
+        </button>
+    `;
     return;
 };
 
@@ -158,6 +165,85 @@ function CRUDeditAutoFill(contact, form){
     form['inputEmail'].value = contact.email;
     return;
 };
+
+/**
+ * Send contact data to export to backend
+ * @param {Contact} contact Contact with the info to export
+ */
+function exportContact(contactId){
+    let contact = CRUDreadContactLocalStorage(contactId);
+    // call backend api
+    const backendUrlA = window.appConfig.backendApiUrl || 'http://localhost:8000';
+    fetch(`${backendUrlA}/generate-vcard`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contact),
+    })
+    .then(response => { 
+        if (!response.ok) {
+            // response.status is the error code (e.g., 500)
+            throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // Create a link to download the file
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${contact.phone}_qrcode.png`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+    })
+    .catch(error => {alert(`Error exporting contacts: ${error.message}`)});
+    return;
+}
+
+/**
+ * Send all contacts data to export to backend into a vcf file
+ */
+function exportAllContacts(){
+    let contacts = [];
+    for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        var isConfig = (key == 'NightMode'|| key == 'backend_status');
+        if (!isConfig){
+            var contact = CRUDreadContactLocalStorage(key);
+            contacts.push(contact);
+        }
+    }
+
+    // call backend api
+    fetch(`${backendUrl}/generate-vcf`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contacts),
+    })
+    .then(response => {
+        if (!response.ok) {
+            // response.status is the error code (e.g., 500)
+            throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // Create a link to download the file
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `all_contacts.vcf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+    })
+    .catch(error => {alert(`Error exporting contacts: ${error.message}`)});
+    return;
+}
 
 
 /* =================== Integration/middle CRUD storage-front functions =================== */
@@ -248,7 +334,8 @@ function loadDeferred() {
 
         // set iteration key name
         var key = localStorage.key(i);
-        if (key !== 'NightMode'){
+        let isConfig = (key == 'NightMode'|| key == 'backend_status');
+        if (!isConfig){
             // use key name to retrieve the corresponding value
             var value = CRUDreadContactLocalStorage(key);
 
@@ -269,3 +356,50 @@ function changeTheme(){
         localStorage.setItem('NightMode', false);
     }
 };
+
+/**
+ * Async infinite function that update a local storage backend_status given a health check endpoint
+ * @param {number} delay Delay between checks in milliseconds (initial 1 second)
+ */
+async function backendHealthCheck(delay=1000, maxDelay=30000){
+    incrementalDelay = delay + 2000; // avoid too many requests
+    if (incrementalDelay > maxDelay){
+        incrementalDelay = maxDelay;
+    }
+    try {
+        const response = await fetch(`${backendUrl}/healthcheck`);
+        if (response.ok) {
+            localStorage.setItem('backend_status', 'Online');
+            maxDelay = 1000;
+        } else {
+            localStorage.setItem('backend_status', 'Offline');
+        }
+    } catch (error) {
+        localStorage.setItem('backend_status', 'Offline');
+    }
+    setTimeout(() => backendHealthCheck(incrementalDelay, maxDelay), incrementalDelay);
+    updateBackendStatus();
+}
+
+// get backend status from local storage
+function updateBackendStatus(){
+    let status = localStorage.getItem('backend_status') || 'Unknown';
+    const statusElement = document.getElementById('BackendStatusText');
+    if (statusElement) {
+        statusElement.innerText = status;
+        document.getElementById('BackendStatusIndicator').title = `Backend URL -> ${backendUrl}`;
+        
+        if (status === 'Online'){
+            document.getElementById('BackendStatusIndicator').style.backgroundColor = '#d1e7dd';
+            document.getElementById('BackendStatusIndicator').style.color = '#0f5132';
+            document.getElementById('BackendStatusIndicator').style.borderColor = '#198754';
+        }else {
+            document.getElementById('BackendStatusIndicator').style.backgroundColor = '#f8d7da';
+            document.getElementById('BackendStatusIndicator').style.color = '#842029';
+            document.getElementById('BackendStatusIndicator').style.borderColor = '#dc3545';
+        }
+    }
+}
+
+// start health check loop
+backendHealthCheck();

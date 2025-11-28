@@ -1,15 +1,18 @@
-# Tarea-2-INF331-UTFSM
-Pruebas a aplicativo web de administración de contactos relizado en javascript y HTML + bootstrap5 usando el standalone de Jasmine.
+# Taller-2-EIN137-B-UTFSM-fe
+_Implementación de CICD de desarrollo y productivo para un proyecto utilizando pipelines de Jenkins integrados con Sonarqube montados en Docker._
 
 ## Requerimientos / Manual de instalación:
-Su navegador preferido que permita la ejecución de javascript.
+- Su navegador preferido que permita la ejecución de javascript
+- Docker
+- Opcionalmente backend de la aplicación (provee funcionalidad de exportación), disponible en [J122016/Taller-2-EIN137-B-UTFSM-be](https://github.com/J122016/Taller-2-EIN137-B-UTFSM-be)
 
 ## Como usar
-Para pruebas:
-- Abrir el archivo *TestRunner.html* 
+Para el aplicativo (que contiene una pestaña con las pruebas incorporadas) 
+Con docker, ejecutar:
 
-Para el aplicativo (contiene una pestaña con las pruebas incorporadas):
-- Abrir el archivo *ContactManager.html*
+- Crear imagen (ejemplo tag 1) con: `docker build -t contact-manager-frontend:1 .`
+- Ejecutar imagen en contenedor (ejemplo puerto 8080 y backend en localhost:1234) usando:
+  `docker run --name contact-manager-front -d -p 8080:80 -e BACKEND_API_URL=http://localhost:1234 contact-manager-frontend:1`
 
 ## Como contribuir
 Para contribuir existen varias opciones:
@@ -21,4 +24,6 @@ Para contribuir existen varias opciones:
 3. Para consultas generales relacionadas no dude en contactar, mail: javier.torresr@sansano.usm.cl
 
 ## Licencia
-Construido por Javier Torres el 2022 como tarea 2 de INF233 (Pruebas de software) y lanzado para uso libre mediante MIT license, pudiendo utilizar el material con casi cualquier propósito (incluyendo el uso comercial), como condición se aprecia el crédito del material utilizado.
+Originalmente por Javier Torres el 2022 en repositorio [J122016-Tarea-2-INF331-UTFSM](https://github.com/J122016/J122016-Tarea-2-INF331-UTFSM) y posteriormente modificado en 2025 para el taller 2 de EIN137-B (Prácticas DevOps e integración continua) en el repositorio actual. 
+
+Lanzado para uso libre mediante MIT license, pudiendo utilizar el material con casi cualquier propósito (incluyendo el uso comercial), como condición se aprecia el crédito del material utilizado.
